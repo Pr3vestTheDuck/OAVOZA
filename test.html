@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>XOR-chain Slovak Decoder</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+input, button, textarea { font-size: 16px; margin: 5px 0; }
+textarea { width: 100%; height: 50px; }
+</style>
+</head>
+<body>
+<h2>XOR-chain Slovak Decoder</h2>
+
+<label>Encoded hex string:</label><br>
+<textarea id="hexInput" placeholder="Enter encoded hex"></textarea><br>
+
+<label>First letter override (optional):</label><br>
+<input type="text" id="firstLetter" maxlength="1" placeholder="Leave blank to auto-recover"><br>
+
+<button onclick="decode()">Decode</button>
+
+<h3>Decoded text:</h3>
+<div id="output" style="font-weight:bold; color: darkgreen;"></div>
+
+<script>
+function decode() {
+    const hex = document.getElementById("hexInput").value.trim();
+    const firstLetterOverride = document.getElementById("firstLetter").value.trim();
+    const outputDiv = document.getElementById("output");
+
+    if (!hex) {
+        outputDiv.textContent = "Please enter a hex string.";
+        return;
+    }
+
+    try {
+        const data = [];
+        for (let i = 0; i < hex.length; i += 2) {
+            data.push(parseInt(hex.substr(i, 2), 16));
+        }
+
+        if (data.length === 0) {
+            outputDiv.textContent = "";
+            return;
+        }
+
+        // Recover first byte
+        let firstByte;
+        if (firstLetterOverride) {
+            firstByte = firstLetterOverride.charCodeAt(0);
+        } else {
+            firstByte = data[0] ^ 0x04;
+        }
+
+        // XOR-chain decoding for bytes 1..N-1
+        const decodedBytes = [];
+        for (let i = 1; i < data.length; i++) {
+            decodedBytes.push(data[i] ^ data[i - 1]);
+        }
+
+        // **Remove last byte of XOR-chain** to match Python
+        if (decodedBytes.length > 0) decodedBytes.pop();
+
+        const allBytes = [firstByte].concat(decodedBytes);
+
+        // Decode using Windows-1250 to handle Slovak letters
+        const decoder = new TextDecoder("windows-1250");
+        const decoded = decoder.decode(Uint8Array.from(allBytes));
+
+        outputDiv.textContent = decoded;
+    } catch (err) {
+        outputDiv.textContent = "Error decoding: " + err;
+    }
+}
+</script>
+</body>
+</html>
